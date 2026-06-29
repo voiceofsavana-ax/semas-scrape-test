@@ -1,28 +1,61 @@
-# Semas Scrape Test — 루틴 지침
+# Multi-Site Scrape — 루틴 지침
 
 ## 목적
-이 루틴은 Firecrawl MCP가 클라우드 루틴 환경에서 외부 웹사이트를 스크래핑할 수 있는지 테스트한다.
+
+이 루틴은 Firecrawl MCP를 사용해 두 개의 창업지원 사이트를 **서브에이전트로 병렬 스크래핑**하고 결과를 output/에 저장한다.
+
+## 스크래핑 대상
+
+| 사이트 | URL | 비고 |
+|--------|-----|------|
+| 소상공인시장진흥공단 | https://www.semas.or.kr/web/board/webBoardList.kmdc?bCd=2001&pNm=BOA0101 | 기본 스크래핑 |
+| K-Startup 창업지원포털 | https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do | stealth 프록시 + JS 렌더링 |
 
 ## 실행 지침
 
-1. Firecrawl MCP의 `firecrawl_scrape` 도구를 사용해 아래 URL을 스크래핑하라:
-   - URL: `https://www.semas.or.kr/web/board/webBoardList.kmdc?bCd=2001&pNm=BOA0101`
-   - 옵션: `formats: ["markdown"]`
+아래 두 서브에이전트를 **병렬**로 실행하라:
 
-2. 결과를 `output/result.md`에 저장하라. 내용 예시:
-   - 스크래핑 성공 시: 추출된 공지 목록 마크다운
-   - 실패 시: 에러 메시지 전문
+### 서브에이전트 A — 소상공인시장진흥공단
 
-3. `output/log.md`에 실행 로그를 기록하라:
+`firecrawl_scrape` 도구로 스크래핑:
+- URL: `https://www.semas.or.kr/web/board/webBoardList.kmdc?bCd=2001&pNm=BOA0101`
+- 옵션: `formats: ["markdown"]`, `onlyMainContent: true`
+- 스크래핑 결과 전문을 리턴하라
+
+### 서브에이전트 B — K-Startup 창업지원포털
+
+`firecrawl_scrape` 도구로 스크래핑:
+- URL: `https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do`
+- 옵션: `formats: ["markdown"]`, `onlyMainContent: true`, `proxy: "stealth"`, `waitFor: 5000`
+- 스크래핑 결과 전문을 리턴하라
+
+### 취합 및 저장
+
+두 서브에이전트 결과를 모아 아래 순서로 처리하라:
+
+1. **`output/result.md` 저장** — 형식:
+   ```
+   # 창업지원 공고 수집 결과
+   수집일시: YYYY-MM-DD HH:MM UTC
+
+   ## 소상공인시장진흥공단
+   [서브에이전트 A 결과]
+
+   ## K-Startup 창업지원포털
+   [서브에이전트 B 결과]
+   ```
+
+2. **`output/log.md` 기록** — 포함 항목:
    - 실행 시각 (UTC)
-   - 성공/실패 여부
-   - 사용한 도구명
+   - 각 사이트별 성공/실패 여부
    - 에러 코드 및 메시지 (실패 시)
-   - 응답 소요 시간 (가능하면)
+   - 사용한 proxy 옵션
 
-4. `output/` 디렉토리의 변경사항을 커밋하고 푸시하라:
+3. **`output/` 커밋 & 푸시**:
    - 커밋 메시지: `test: scrape run [성공/실패] YYYY-MM-DD`
 
 ## 주의
-- API key 없이 Firecrawl 도구 호출이 실패하면 그 에러도 log.md에 기록할 것
-- 절대 루틴을 중단하지 말고, 실패해도 log.md 커밋까지는 완료할 것
+
+- 서브에이전트 중 하나가 실패해도 나머지 결과는 반드시 저장할 것
+- 실패해도 log.md 커밋까지는 반드시 완료할 것
+- Firecrawl API key 오류 시 에러 전문을 log.md에 기록할 것
